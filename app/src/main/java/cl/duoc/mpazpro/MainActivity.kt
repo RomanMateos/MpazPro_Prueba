@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import cl.duoc.mpazpro.ui.HomeScreen
 import cl.duoc.mpazpro.ui.theme.MpazPro_PruebaTheme
+import cl.duoc.mpazpro.ui.theme.screen.HomeScreen2
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MpazPro_PruebaTheme {
-                HomeScreen()
+                HomeScreen2()
             }
         }
     }
