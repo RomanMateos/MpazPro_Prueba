@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import cl.duoc.mpazpro.ui.theme.screen.components.AnimatedBanner
 import cl.duoc.mpazpro.viewmodel.UsuarioViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,6 +22,7 @@ fun UsuarioScreen(
     onNavigateToSummary: (String, String, String, String) -> Unit
 ) {
     val estado by viewModel.uiState.collectAsState()
+    val mostrarBanner by viewModel.mostrarBanner.collectAsState()
 
     Scaffold(
         topBar = {
@@ -35,13 +37,18 @@ fun UsuarioScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Banner Animado
+            AnimatedBanner(
+                visible = mostrarBanner,
+                mensaje = "¡Bienvenido/a ${estado.nombre}! Guardando datos..."
+            )
+
             Text(
                 text = "Registro e Identificación del Usuario",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // Campo RUT / ID Ficticio
             OutlinedTextField(
                 value = estado.rut,
                 onValueChange = { viewModel.onRutCambiado(it) },
@@ -54,7 +61,6 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Campo Nombre
             OutlinedTextField(
                 value = estado.nombre,
                 onValueChange = { viewModel.onNombreCambiado(it) },
@@ -67,7 +73,6 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Campo Correo
             OutlinedTextField(
                 value = estado.correo,
                 onValueChange = { viewModel.onCorreoCambiado(it) },
@@ -80,7 +85,6 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Seleccionar Rol (Estudiante, Docente, UTP)
             Text("Seleccione Perfil / Rol:", modifier = Modifier.align(Alignment.Start))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -95,10 +99,11 @@ fun UsuarioScreen(
                 }
             }
 
-            // Botón Ingresar
             Button(
                 onClick = {
-                    onNavigateToSummary(estado.rut, estado.nombre, estado.correo, estado.rolSeleccionado)
+                    viewModel.guardarSesionYContinuar {
+                        onNavigateToSummary(estado.rut, estado.nombre, estado.correo, estado.rolSeleccionado)
+                    }
                 },
                 enabled = estado.esValido,
                 modifier = Modifier

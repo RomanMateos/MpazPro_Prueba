@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import cl.duoc.mpazpro.navigation.NavigationEvent
 import cl.duoc.mpazpro.navigation.Screen
+import cl.duoc.mpazpro.repository.UserPreferencesRepository
 import cl.duoc.mpazpro.ui.theme.MpazPro_PruebaTheme
 import cl.duoc.mpazpro.ui.theme.screen.HomeScreen
 import cl.duoc.mpazpro.ui.theme.screen.ProfileScreen
@@ -25,7 +28,17 @@ import cl.duoc.mpazpro.viewmodel.UsuarioViewModel
 class MainActivity : ComponentActivity() {
 
     private val mainViewModel: MainViewModel by viewModels()
-    private val usuarioViewModel: UsuarioViewModel by viewModels()
+
+    // Instanciación de UsuarioViewModel con Factory para inyectar el repositorio DataStore
+    private val usuarioViewModel: UsuarioViewModel by viewModels {
+        object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                val repository = UserPreferencesRepository(applicationContext)
+                return UsuarioViewModel(repository) as T
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +79,7 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(onNavigateBack = { mainViewModel.navigateBack() })
                     }
 
-                    // Destino: Formulario de Usuario (Caso MPAZ PRO con 4 parámetros)
+                    // Destino: Formulario de Usuario con DataStore y Animación
                     composable(route = Screen.Usuario.route) {
                         UsuarioScreen(
                             viewModel = usuarioViewModel,
