@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -37,10 +38,9 @@ fun UsuarioScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Banner Animado
             AnimatedBanner(
                 visible = mostrarBanner,
-                mensaje = "¡Bienvenido/a ${estado.nombre}! Guardando datos..."
+                mensaje = "¡Bienvenido/a ${estado.nombre}! Guardando datos en DataStore..."
             )
 
             Text(
@@ -49,11 +49,17 @@ fun UsuarioScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
+            // Campo RUT
             OutlinedTextField(
                 value = estado.rut,
                 onValueChange = { viewModel.onRutCambiado(it) },
                 label = { Text("RUT / ID Ficticio") },
                 leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null) },
+                trailingIcon = {
+                    if (estado.errores.containsKey("rut")) {
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                    }
+                },
                 isError = estado.errores.containsKey("rut"),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -61,11 +67,17 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
+            // Campo Nombre
             OutlinedTextField(
                 value = estado.nombre,
                 onValueChange = { viewModel.onNombreCambiado(it) },
                 label = { Text("Nombre Completo") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                trailingIcon = {
+                    if (estado.errores.containsKey("nombre")) {
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                    }
+                },
                 isError = estado.errores.containsKey("nombre"),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -73,11 +85,17 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
+            // Campo Correo
             OutlinedTextField(
                 value = estado.correo,
                 onValueChange = { viewModel.onCorreoCambiado(it) },
                 label = { Text("Correo Institucional") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                trailingIcon = {
+                    if (estado.errores.containsKey("correo")) {
+                        Icon(Icons.Default.Error, contentDescription = "Error", tint = MaterialTheme.colorScheme.error)
+                    }
+                },
                 isError = estado.errores.containsKey("correo"),
                 modifier = Modifier.fillMaxWidth()
             )

@@ -9,6 +9,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -20,9 +21,11 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResumenScreen(
+    rut: String,
     nombre: String,
     correo: String,
-    direccion: String,
+    rol: String,
+    onNavigateToHome: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     Scaffold(
@@ -51,17 +54,25 @@ fun ResumenScreen(
                     modifier = Modifier.padding(all = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(space = 8.dp)
                 ) {
-                    Text(text = "Nombre: $nombre", style = MaterialTheme.typography.bodyLarge)
-                    Text(text = "Correo: $correo", style = MaterialTheme.typography.bodyLarge)
-                    Text(text = "Dirección: $direccion", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = "RUT / ID: $rut", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = "Nombre Completo: $nombre", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = "Correo Institucional: $correo", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = "Rol Seleccionado: $rol", style = MaterialTheme.typography.bodyLarge)
                 }
             }
 
             Button(
-                onClick = onNavigateBack,
-                modifier = Modifier.padding(top = 16.dp)
+                onClick = onNavigateToHome,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
-                Text(text = "Volver al Formulario")
+                Text(text = "Ingresar a la Plataforma MPAZ PRO")
+            }
+
+            OutlinedButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Volver y Editar Datos")
             }
         }
     }

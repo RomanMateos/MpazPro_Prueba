@@ -1,5 +1,6 @@
 package cl.duoc.mpazpro
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,7 +30,6 @@ class MainActivity : ComponentActivity() {
 
     private val mainViewModel: MainViewModel by viewModels()
 
-    // Instanciación de UsuarioViewModel con Factory para inyectar el repositorio DataStore
     private val usuarioViewModel: UsuarioViewModel by viewModels {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -47,7 +47,6 @@ class MainActivity : ComponentActivity() {
             MpazPro_PruebaTheme {
                 val navController = rememberNavController()
 
-                // Escucha de eventos de navegación emitidos por MainViewModel
                 LaunchedEffect(key1 = true) {
                     mainViewModel.navigationEvent.collect { event ->
                         when (event) {
@@ -64,7 +63,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // NavHost que administra el flujo completo
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Usuario.route
@@ -79,18 +77,20 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(onNavigateBack = { mainViewModel.navigateBack() })
                     }
 
-                    // Destino: Formulario de Usuario con DataStore y Animación
                     composable(route = Screen.Usuario.route) {
                         UsuarioScreen(
                             viewModel = usuarioViewModel,
                             onNavigateToSummary = { rut, nombre, correo, rol ->
-                                val rutaDestino = "resumen_page/$rut/$nombre/$correo/$rol"
+                                val encodedRut = Uri.encode(rut)
+                                val encodedNombre = Uri.encode(nombre)
+                                val encodedCorreo = Uri.encode(correo)
+                                val encodedRol = Uri.encode(rol)
+                                val rutaDestino = "resumen_page/$encodedRut/$encodedNombre/$encodedCorreo/$encodedRol"
                                 navController.navigate(rutaDestino)
                             }
                         )
                     }
 
-                    // Destino: Resumen con recepción de 4 argumentos
                     composable(
                         route = "resumen_page/{rut}/{nombre}/{correo}/{rol}",
                         arguments = listOf(
@@ -100,15 +100,21 @@ class MainActivity : ComponentActivity() {
                             navArgument("rol") { type = NavType.StringType }
                         )
                     ) { backStackEntry ->
-                        val rut = backStackEntry.arguments?.getString("rut") ?: ""
-                        val nombre = backStackEntry.arguments?.getString("nombre") ?: ""
-                        val correo = backStackEntry.arguments?.getString("correo") ?: ""
-                        val rol = backStackEntry.arguments?.getString("rol") ?: ""
+                        val rut = Uri.decode(backStackEntry.arguments?.getString("rut") ?: "")
+                        val nombre = Uri.decode(backStackEntry.arguments?.getString("nombre") ?: "")
+                        val correo = Uri.decode(backStackEntry.arguments?.getString("correo") ?: "")
+                        val rol = Uri.decode(backStackEntry.arguments?.getString("rol") ?: "")
 
                         ResumenScreen(
-                            nombre = "$nombre ($rol)",
+                            rut = rut,
+                            nombre = nombre,
                             correo = correo,
-                            direccion = "RUT / ID: $rut",
+                            rol = rol,
+                            onNavigateToHome = {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(Screen.Usuario.route) { inclusive = true }
+                                }
+                            },
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
