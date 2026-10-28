@@ -71,7 +71,10 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(viewModel = mainViewModel)
                     }
                     composable(route = Screen.Profile.route) {
-                        ProfileScreen(onNavigateBack = { mainViewModel.navigateBack() })
+                        ProfileScreen(
+                            viewModel = usuarioViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
                     }
                     composable(route = Screen.Settings.route) {
                         SettingsScreen(onNavigateBack = { mainViewModel.navigateBack() })

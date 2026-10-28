@@ -5,18 +5,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import cl.duoc.mpazpro.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "mpazpro_user_prefs")
-
-data class UserPreferences(
-    val rut: String,
-    val nombre: String,
-    val correo: String,
-    val rol: String,
-    val sesionActiva: Boolean
-)
 
 class UserPreferencesRepository(private val context: Context) {
 
@@ -28,7 +21,6 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_SESION_ACTIVA = booleanPreferencesKey("sesion_activa")
     }
 
-    // Lectura completa de preferencias
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
         UserPreferences(
             rut = preferences[KEY_RUT] ?: "",
@@ -39,8 +31,12 @@ class UserPreferencesRepository(private val context: Context) {
         )
     }
 
-    // Guardar sesión completa
-    suspend fun guardarSesion(rut: String, nombre: String, correo: String, rol: String) {
+    suspend fun guardarSesion(
+        rut: String,
+        nombre: String,
+        correo: String,
+        rol: String
+    ) {
         context.dataStore.edit { preferences ->
             preferences[KEY_RUT] = rut
             preferences[KEY_NOMBRE] = nombre
@@ -50,7 +46,6 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
-    // Cerrar sesión
     suspend fun cerrarSesion() {
         context.dataStore.edit { preferences ->
             preferences.clear()

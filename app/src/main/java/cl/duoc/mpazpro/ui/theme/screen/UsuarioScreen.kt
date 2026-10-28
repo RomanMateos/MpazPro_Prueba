@@ -1,6 +1,8 @@
 package cl.duoc.mpazpro.ui.theme.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Email
@@ -24,6 +26,7 @@ fun UsuarioScreen(
 ) {
     val estado by viewModel.uiState.collectAsState()
     val mostrarBanner by viewModel.mostrarBanner.collectAsState()
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -34,6 +37,7 @@ fun UsuarioScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -49,7 +53,6 @@ fun UsuarioScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // Campo RUT
             OutlinedTextField(
                 value = estado.rut,
                 onValueChange = { viewModel.onRutCambiado(it) },
@@ -67,7 +70,6 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Campo Nombre
             OutlinedTextField(
                 value = estado.nombre,
                 onValueChange = { viewModel.onNombreCambiado(it) },
@@ -85,7 +87,6 @@ fun UsuarioScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Campo Correo
             OutlinedTextField(
                 value = estado.correo,
                 onValueChange = { viewModel.onCorreoCambiado(it) },
@@ -123,12 +124,20 @@ fun UsuarioScreen(
                         onNavigateToSummary(estado.rut, estado.nombre, estado.correo, estado.rolSeleccionado)
                     }
                 },
-                enabled = estado.esValido,
+                enabled = estado.esValido && !estado.guardando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp)
             ) {
-                Text(text = "Confirmar Registro y Continuar")
+                if (estado.guardando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(text = "Confirmar Registro y Continuar")
+                }
             }
         }
     }

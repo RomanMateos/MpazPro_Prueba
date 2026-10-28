@@ -2,6 +2,7 @@ package cl.duoc.mpazpro.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cl.duoc.mpazpro.model.UserPreferences
 import cl.duoc.mpazpro.model.UsuarioUiState
 import cl.duoc.mpazpro.repository.UserPreferencesRepository
 import kotlinx.coroutines.delay
@@ -22,15 +23,13 @@ class UsuarioViewModel(
     private val _mostrarBanner = MutableStateFlow(false)
     val mostrarBanner: StateFlow<Boolean> = _mostrarBanner.asStateFlow()
 
-    // Banderas para controlar si el usuario ya interactuó con los campos (evita errores prematuros)
     private var rutTocado = false
     private var nombreTocado = false
     private var correoTocado = false
 
     init {
-        // Cargar datos persistidos desde DataStore si existen
         viewModelScope.launch {
-            val prefs = repository.userPreferencesFlow.first()
+            val prefs: UserPreferences = repository.userPreferencesFlow.first()
             if (prefs.rut.isNotBlank() || prefs.nombre.isNotBlank()) {
                 _uiState.update {
                     it.copy(
@@ -71,52 +70,69 @@ class UsuarioViewModel(
         validarFormulario()
     }
 
-    fun guardarSesionYContinuar(onExito: () -> Unit) {
-        viewModelScope.launch {
-            val estado = _uiState.value
-            repository.guardarSesion(estado.rut, estado.nombre, estado.correo, estado.rolSeleccionado)
+    fun onFotoSeleccionada(uriString: String) {
+        _uiState.update { it.copy(fotoUri = uriString) }
+    }
 
-            // Mostrar animación del banner antes de navegar
+    fun guardarSesionYContinuar(onExito: () -> Unit) {
+        if (_uiState.value.guardando) return // Freno anti doble clic
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(guardando = true) }
+            val estado = _uiState.value
+
+            repository.guardarSesion(
+                rut = estado.rut,
+                nombre = estado.nombre,
+                correo = estado.correo,
+                rol = estado.rolSeleccionado
+            )
+
             _mostrarBanner.value = true
-            delay(1200) // Pausa de 1.2 segundos para apreciar la animación
+            delay(1200)
             _mostrarBanner.value = false
+            _uiState.update { it.copy(guardando = false) }
             onExito()
         }
     }
 
     private fun validarFormulario() {
-        val erroresTemp = mutableMapOf<String, String>()
         val estadoActual = _uiState.value
+        val todosLosErrores = mutableMapOf<String, String>()
 
-        // Validación RUT Ficticio
         if (estadoActual.rut.isBlank()) {
-            if (rutTocado) erroresTemp["rut"] = "El RUT / ID es obligatorio"
+            todosLosErrores["rut"] = "El RUT / ID es obligatorio"
         } else if (estadoActual.rut.length < 8) {
-            if (rutTocado) erroresTemp["rut"] = "Ingrese un RUT válido de prueba (mínimo 8 dígitos)"
+            todosLosErrores["rut"] = "Ingrese un RUT válido de prueba (mínimo 8 dígitos)"
         }
 
-        // Validación Nombre
         if (estadoActual.nombre.isBlank()) {
-            if (nombreTocado) erroresTemp["nombre"] = "El nombre del usuario es obligatorio"
+            todosLosErrores["nombre"] = "El nombre del usuario es obligatorio"
         } else if (estadoActual.nombre.trim().length < 3) {
-            if (nombreTocado) erroresTemp["nombre"] = "El nombre debe tener al menos 3 letras"
+            todosLosErrores["nombre"] = "El nombre debe tener al menos 3 letras"
         }
 
-        // Validación Correo Institucional
         if (estadoActual.correo.isBlank()) {
-            if (correoTocado) erroresTemp["correo"] = "El correo es obligatorio"
+            todosLosErrores["correo"] = "El correo es obligatorio"
         } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(estadoActual.correo).matches()) {
-            if (correoTocado) erroresTemp["correo"] = "Formato de correo inválido"
+            todosLosErrores["correo"] = "Formato de correo inválido"
         }
 
-        val esValido = estadoActual.rut.length >= 8 &&
-                estadoActual.nombre.trim().length >= 3 &&
-                android.util.Patterns.EMAIL_ADDRESS.matcher(estadoActual.correo).matches()
+        val esFormularioValido = todosLosErrores.isEmpty()
+
+        val erroresVisibles = todosLosErrores.filterKeys { campo ->
+            when (campo) {
+                "rut" -> rutTocado
+                "nombre" -> nombreTocado
+                "correo" -> correoTocado
+                else -> true
+            }
+        }
 
         _uiState.update { currentState ->
             currentState.copy(
-                errores = erroresTemp,
-                esValido = esValido
+                errores = erroresVisibles,
+                esValido = esFormularioValido
             )
         }
     }
