@@ -2,6 +2,11 @@ package cl.duoc.mpazpro.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cl.duoc.mpazpro.data.remote.BackendApiService
+import cl.duoc.mpazpro.data.remote.ExternalApiService
+import cl.duoc.mpazpro.data.remote.PostDto
+import cl.duoc.mpazpro.data.remote.RetrofitInstance
+import cl.duoc.mpazpro.data.remote.UsuarioDto
 import cl.duoc.mpazpro.model.UserPreferences
 import cl.duoc.mpazpro.model.UsuarioUiState
 import cl.duoc.mpazpro.repository.UserPreferencesRepository
@@ -14,7 +19,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class UsuarioViewModel(
-    private val repository: UserPreferencesRepository
+    private val repository: UserPreferencesRepository,
+    private val backendApi: BackendApiService = RetrofitInstance.backendApi,
+    private val externalApi: ExternalApiService = RetrofitInstance.externalApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UsuarioUiState())
@@ -23,9 +30,21 @@ class UsuarioViewModel(
     private val _mostrarBanner = MutableStateFlow(false)
     val mostrarBanner: StateFlow<Boolean> = _mostrarBanner.asStateFlow()
 
+    // Estados para el Microservicio (Spring Boot) y la API Externa
+    private val _usuariosRemotos = MutableStateFlow<List<UsuarioDto>>(emptyList())
+    val usuariosRemotos: StateFlow<List<UsuarioDto>> = _usuariosRemotos.asStateFlow()
+
+    private val _postsExternos = MutableStateFlow<List<PostDto>>(emptyList())
+    val postsExternos: StateFlow<List<PostDto>> = _postsExternos.asStateFlow()
+
+    private val _errorRed = MutableStateFlow<String?>(null)
+    val errorRed: StateFlow<String?> = _errorRed.asStateFlow()
+
     private var rutTocado = false
     private var nombreTocado = false
     private var correoTocado = false
+
+    private val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
     init {
         viewModelScope.launch {
@@ -75,12 +94,13 @@ class UsuarioViewModel(
     }
 
     fun guardarSesionYContinuar(onExito: () -> Unit) {
-        if (_uiState.value.guardando) return // Freno anti doble clic
+        if (_uiState.value.guardando) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(guardando = true) }
             val estado = _uiState.value
 
+            // 1. Guardar localmente en DataStore
             repository.guardarSesion(
                 rut = estado.rut,
                 nombre = estado.nombre,
@@ -88,11 +108,69 @@ class UsuarioViewModel(
                 rol = estado.rolSeleccionado
             )
 
+            // 2. Enviar al microservicio Spring Boot (POST)
+            try {
+                backendApi.crearUsuario(
+                    UsuarioDto(nombre = estado.nombre, correo = estado.correo)
+                )
+                cargarUsuariosRemotos()
+            } catch (e: Exception) {
+                _errorRed.value = "Guardado local OK. Error al sincronizar backend: ${e.message}"
+            }
+
             _mostrarBanner.value = true
             delay(1200)
             _mostrarBanner.value = false
             _uiState.update { it.copy(guardando = false) }
             onExito()
+        }
+    }
+
+    // --- CRUD Microservicio Spring Boot ---
+
+    fun cargarUsuariosRemotos() {
+        viewModelScope.launch {
+            try {
+                _usuariosRemotos.value = backendApi.getUsuarios()
+                _errorRed.value = null
+            } catch (e: Exception) {
+                _errorRed.value = "Error cargando usuarios: ${e.message}"
+            }
+        }
+    }
+
+    fun actualizarUsuarioRemoto(id: Long, nombre: String, correo: String) {
+        viewModelScope.launch {
+            try {
+                backendApi.actualizarUsuario(id, UsuarioDto(id = id, nombre = nombre, correo = correo))
+                cargarUsuariosRemotos()
+            } catch (e: Exception) {
+                _errorRed.value = "Error al actualizar: ${e.message}"
+            }
+        }
+    }
+
+    fun eliminarUsuarioRemoto(id: Long) {
+        viewModelScope.launch {
+            try {
+                backendApi.eliminarUsuario(id)
+                cargarUsuariosRemotos()
+            } catch (e: Exception) {
+                _errorRed.value = "Error al eliminar: ${e.message}"
+            }
+        }
+    }
+
+    // --- Consumo API Externa (JSONPlaceholder) ---
+
+    fun cargarPostsExternos() {
+        viewModelScope.launch {
+            try {
+                _postsExternos.value = externalApi.getPosts().take(10)
+                _errorRed.value = null
+            } catch (e: Exception) {
+                _errorRed.value = "Error cargando API externa: ${e.message}"
+            }
         }
     }
 
@@ -114,7 +192,7 @@ class UsuarioViewModel(
 
         if (estadoActual.correo.isBlank()) {
             todosLosErrores["correo"] = "El correo es obligatorio"
-        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(estadoActual.correo).matches()) {
+        } else if (!emailRegex.matches(estadoActual.correo)) {
             todosLosErrores["correo"] = "Formato de correo inválido"
         }
 

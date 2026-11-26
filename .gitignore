@@ -14,3 +14,9 @@
 .cxx
 local.properties
 hs_err_pid*.log
+
+# Archivos de entrega, logs y llaves
+*.apk
+*.aab
+*.jks
+replay_pid*.log
