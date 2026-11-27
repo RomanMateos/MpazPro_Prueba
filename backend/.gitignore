@@ -1,0 +1,12 @@
+target/
+build/
+.gradle/
+.idea/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.env
+application-secret.properties
+application-local.properties
