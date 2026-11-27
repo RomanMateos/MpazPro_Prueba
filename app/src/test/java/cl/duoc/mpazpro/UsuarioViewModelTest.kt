@@ -101,7 +101,7 @@ class UsuarioViewModelTest : StringSpec({
     }
 
     "cargarPostsExternos debe obtener datos desde la API externa JSONPlaceholder" {
-        runTest {
+         runTest {
             val fakePosts = listOf(PostDto(1, 1, "Título de prueba", "Cuerpo del post"))
             val mockExternal = mockk<ExternalApiService>()
             coEvery { mockExternal.getPosts() } returns fakePosts
