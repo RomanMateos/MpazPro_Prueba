@@ -20,12 +20,15 @@ import cl.duoc.mpazpro.navigation.Screen
 import cl.duoc.mpazpro.repository.UserPreferencesRepository
 import cl.duoc.mpazpro.ui.theme.MpazPro_PruebaTheme
 import cl.duoc.mpazpro.ui.theme.screen.HomeScreen
+import cl.duoc.mpazpro.ui.theme.screen.NovedadesScreen
 import cl.duoc.mpazpro.ui.theme.screen.ProfileScreen
 import cl.duoc.mpazpro.ui.theme.screen.ResumenScreen
 import cl.duoc.mpazpro.ui.theme.screen.SettingsScreen
 import cl.duoc.mpazpro.ui.theme.screen.UnidadFormScreen
 import cl.duoc.mpazpro.ui.theme.screen.UsuarioScreen
 import cl.duoc.mpazpro.viewmodel.MainViewModel
+import cl.duoc.mpazpro.viewmodel.NovedadesViewModel
+import cl.duoc.mpazpro.viewmodel.NovedadesViewModelFactory
 import cl.duoc.mpazpro.viewmodel.UnidadViewModel
 import cl.duoc.mpazpro.viewmodel.UnidadViewModelFactory
 import cl.duoc.mpazpro.viewmodel.UsuarioViewModel
@@ -46,6 +49,10 @@ class MainActivity : ComponentActivity() {
 
     private val unidadViewModel: UnidadViewModel by viewModels {
         UnidadViewModelFactory()
+    }
+
+    private val novedadesViewModel: NovedadesViewModel by viewModels {
+        NovedadesViewModelFactory()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,6 +110,13 @@ class MainActivity : ComponentActivity() {
                         UnidadFormScreen(
                             unidadId = unidadId,
                             unidadViewModel = unidadViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(route = Screen.Novedades.route) {
+                        NovedadesScreen(
+                            viewModel = novedadesViewModel,
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
