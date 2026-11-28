@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavType
@@ -22,8 +23,11 @@ import cl.duoc.mpazpro.ui.theme.screen.HomeScreen
 import cl.duoc.mpazpro.ui.theme.screen.ProfileScreen
 import cl.duoc.mpazpro.ui.theme.screen.ResumenScreen
 import cl.duoc.mpazpro.ui.theme.screen.SettingsScreen
+import cl.duoc.mpazpro.ui.theme.screen.UnidadFormScreen
 import cl.duoc.mpazpro.ui.theme.screen.UsuarioScreen
 import cl.duoc.mpazpro.viewmodel.MainViewModel
+import cl.duoc.mpazpro.viewmodel.UnidadViewModel
+import cl.duoc.mpazpro.viewmodel.UnidadViewModelFactory
 import cl.duoc.mpazpro.viewmodel.UsuarioViewModel
 
 class MainActivity : ComponentActivity() {
@@ -40,12 +44,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val unidadViewModel: UnidadViewModel by viewModels {
+        UnidadViewModelFactory()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MpazPro_PruebaTheme {
                 val navController = rememberNavController()
+                val userPreferencesRepository = remember {
+                    UserPreferencesRepository(applicationContext)
+                }
 
                 LaunchedEffect(key1 = true) {
                     mainViewModel.navigationEvent.collect { event ->
@@ -68,16 +79,51 @@ class MainActivity : ComponentActivity() {
                     startDestination = Screen.Usuario.route
                 ) {
                     composable(route = Screen.Home.route) {
-                        HomeScreen(viewModel = mainViewModel)
+                        HomeScreen(
+                            viewModel = mainViewModel,
+                            unidadViewModel = unidadViewModel,
+                            onNavigateToForm = { id ->
+                                navController.navigate(Screen.UnidadForm.createRoute(id))
+                            }
+                        )
                     }
+
+                    composable(
+                        route = Screen.UnidadForm.route,
+                        arguments = listOf(
+                            navArgument("unidadId") {
+                                type = NavType.LongType
+                                defaultValue = -1L
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val rawId = backStackEntry.arguments?.getLong("unidadId") ?: -1L
+                        val unidadId = if (rawId > 0L) rawId else null
+
+                        UnidadFormScreen(
+                            unidadId = unidadId,
+                            unidadViewModel = unidadViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
                     composable(route = Screen.Profile.route) {
                         ProfileScreen(
                             viewModel = usuarioViewModel,
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
+
                     composable(route = Screen.Settings.route) {
-                        SettingsScreen(onNavigateBack = { mainViewModel.navigateBack() })
+                        SettingsScreen(
+                            userPreferencesRepository = userPreferencesRepository,
+                            onNavigateBack = { mainViewModel.navigateBack() },
+                            onCerrarSesion = {
+                                navController.navigate(Screen.Usuario.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
                     }
 
                     composable(route = Screen.Usuario.route) {

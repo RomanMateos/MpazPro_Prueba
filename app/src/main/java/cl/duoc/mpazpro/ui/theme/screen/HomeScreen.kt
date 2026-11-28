@@ -1,27 +1,79 @@
 package cl.duoc.mpazpro.ui.theme.screen
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cl.duoc.mpazpro.model.Unidad
 import cl.duoc.mpazpro.navigation.Screen
 import cl.duoc.mpazpro.viewmodel.MainViewModel
+import cl.duoc.mpazpro.viewmodel.UnidadUiState
+import cl.duoc.mpazpro.viewmodel.UnidadViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    unidadViewModel: UnidadViewModel,
+    onNavigateToForm: (Long?) -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val uiState by unidadViewModel.uiState.collectAsState()
+    var unidadAEliminar by remember { mutableStateOf<Unidad?>(null) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -67,7 +119,7 @@ fun HomeScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("MPAZ PRO - Plataforma Principal") },
+                    title = { Text("MPAZ PRO - Unidades") },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menú")
@@ -96,58 +148,155 @@ fun HomeScreen(
                         label = { Text("Ajustes") }
                     )
                 }
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = { onNavigateToForm(null) }) {
+                    Icon(Icons.Default.Add, contentDescription = "Crear unidad")
+                }
             }
         ) { innerPadding ->
-            // Adaptabilidad mediante BoxWithConstraints (Cumplimiento de diseño adaptativo)
             BoxWithConstraints(
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
-                if (maxWidth < 600.dp) {
-                    // Diseño Vertical / Pantalla Compacta
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "¡Bienvenido a MPAZ PRO 2.º!",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Plataforma de apoyo didáctico para Segundo Básico.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                } else {
-                    // Diseño Horizontal / Tablet / Pantalla Expandida
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        Text(
-                            text = "¡Bienvenido a MPAZ PRO 2.º!",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Card(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = "Modo Horizontal / Pantalla Ancha Activo",
-                                modifier = Modifier.padding(24.dp),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                val esPantallaAncha = maxWidth >= 600.dp
+
+                when (val estado = uiState) {
+                    is UnidadUiState.Cargando -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
+
+                    is UnidadUiState.Error -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Error: ${estado.mensaje}",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(onClick = { unidadViewModel.cargar() }) {
+                                Text("Reintentar")
+                            }
+                        }
+                    }
+
+                    is UnidadUiState.Exito -> {
+                        if (estado.unidades.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("No hay unidades registradas. Presiona + para crear una.")
+                            }
+                        } else if (esPantallaAncha) {
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(estado.unidades, key = { it.id ?: it.hashCode() }) { unidad ->
+                                    UnidadCard(
+                                        unidad = unidad,
+                                        onEditar = { onNavigateToForm(unidad.id) },
+                                        onEliminar = { unidadAEliminar = unidad }
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(estado.unidades, key = { it.id ?: it.hashCode() }) { unidad ->
+                                    UnidadCard(
+                                        unidad = unidad,
+                                        onEditar = { onNavigateToForm(unidad.id) },
+                                        onEliminar = { unidadAEliminar = unidad }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Diálogo de confirmación antes de eliminar
+    unidadAEliminar?.let { unidad ->
+        AlertDialog(
+            onDismissRequest = { unidadAEliminar = null },
+            title = { Text("Eliminar unidad") },
+            text = { Text("¿Seguro que deseas eliminar «${unidad.titulo}»?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        unidad.id?.let { unidadViewModel.eliminar(it) }
+                        unidadAEliminar = null
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { unidadAEliminar = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun UnidadCard(
+    unidad: Unidad,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = unidad.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = unidad.asignatura,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Objetivo: ${unidad.oa}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Row {
+                IconButton(onClick = onEditar) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                }
+                IconButton(onClick = onEliminar) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
